@@ -124,43 +124,153 @@ addEventListener('resize', function () {
 });
 
 // Objects
-function Object(x, y, radius, color) {
+function Star(x, y, radius, color) {
     this.x = x;
     this.y = y;
     this.radius = radius;
     this.color = color;
+    this.velocity = {
+        x: _utils2.default.randomIntFromRange(-4, 4),
+        y: 3
+    };
+
+    this.friction = 0.8;
+    this.gravity = 1;
 }
 
-Object.prototype.draw = function () {
-    c.beginPath();
-    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    c.fillStyle = this.color;
-    c.fill();
-    c.closePath();
+Star.prototype = {
+    draw: function draw() {
+        c.save();
+        c.beginPath();
+        c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        c.fillStyle = this.color;
+        c.shadowColor = '#E3EAEF';
+        c.shadowBlur = 20;
+        c.fill();
+        c.closePath();
+        c.restore();
+    },
+    update: function update() {
+        this.draw();
+
+        // when ball hits bottom of screen
+        if (this.y + this.radius + this.velocity.y > canvas.height) {
+            this.velocity.y = -this.velocity.y * this.friction;
+            this.shater();
+        } else {
+            this.velocity.y += this.gravity;
+        }
+
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+    },
+    shater: function shater() {
+        this.radius -= 3;
+        for (var i = 0; i < 8; i++) {
+            miniStars.push(new MiniStar(this.x, this.y, 2));
+        }
+    }
 };
 
-Object.prototype.update = function () {
-    this.draw();
-};
+function MiniStar(x, y, radius, color) {
+    Star.call(this, x, y, radius, color);
+    this.velocity = {
+        x: _utils2.default.randomIntFromRange(-5, 5),
+        y: _utils2.default.randomIntFromRange(-15, 15)
+    };
 
-// Implementation
-var objects = void 0;
+    this.friction = 0.8;
+    this.gravity = 0.1;
+    this.ttl = 300;
+    this.opacity = 1;
+}
+
+MiniStar.prototype = {
+    draw: function draw() {
+        c.beginPath();
+        c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        c.fillStyle = 'rgba(227, 234, 239, ' + this.opacity + ')';
+        c.fill();
+        c.closePath();
+        c.restore();
+    },
+    update: function update() {
+        this.draw();
+
+        // when ball hits bottom of screen
+        if (this.y + this.radius + this.velocity.y > canvas.height) {
+            this.velocity.y = -this.velocity.y * this.friction;
+        } else {
+            this.velocity.y += this.gravity;
+        }
+
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.ttl -= 1;
+        this.opacity -= 1 / this.ttl;
+    }
+
+    // Implementation
+};var backgroundGradient = c.createLinearGradient(0, 0, 0, canvas.height);
+backgroundGradient.addColorStop(0, '#171e26');
+backgroundGradient.addColorStop(1, '#3f586b');
+
+var stars = void 0;
+var miniStars = void 0;
+var backgroundStars = void 0;
+var ticker = 0;
+var randomSpawnRate = 75;
+
 function init() {
-    objects = [];
+    stars = [];
+    miniStars = [];
+    backgroundStars = [];
 
-    for (var i = 0; i < 400; i++) {
-        // objects.push();
+    // for (let i = 0; i < 1; i++) {
+    //     stars.push(new Star(canvas.width / 2, 30, 30, '#E3EAEF'))
+    // }
+
+    for (var i = 0; i < 150; i++) {
+        var x = Math.random() * canvas.width;
+        var y = Math.random() * canvas.height;
+        var radius = Math.random() * 3;
+        backgroundStars.push(new Star(x, y, radius, 'white'));
     }
 }
 
 // Animation Loop
 function animate() {
     requestAnimationFrame(animate);
-    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = backgroundGradient;
+    c.fillRect(0, 0, canvas.width, canvas.height);
 
-    // objects.forEach(object => {
-    //  object.update();
-    // });
+    stars.forEach(function (star, index) {
+        star.update();
+        if (star.radius === 0) {
+            stars.splice(index, 1);
+        }
+    });
+
+    miniStars.forEach(function (miniStar, index) {
+        miniStar.update();
+        if (miniStar.ttl === 0) {
+            miniStars.splice(index, 1);
+        }
+    });
+
+    backgroundStars.forEach(function (backgroundStar) {
+        backgroundStar.draw();
+    });
+
+    ticker++;
+
+    if (ticker % randomSpawnRate === 0) {
+        var x = Math.random() * canvas.width;
+        var y = Math.random() * canvas.width;
+
+        stars.push(new Star(x, -100, 12, 'white'));
+        randomSpawnRate = _utils2.default.randomIntFromRange(75, 200);
+    }
 }
 
 init();
